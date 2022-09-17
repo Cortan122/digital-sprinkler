@@ -1,0 +1,5 @@
+www/
+posters/
+sprinkler
+*.o
+stb_ds.h
