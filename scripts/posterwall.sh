@@ -15,4 +15,4 @@ done
 wait
 echo done
 
-glue.sh "$("$dirname"/factorpairs.py)" *.jpg > "$output_file"
+"$dirname"/glue.sh "$("$dirname"/factorpairs.py)" *.jpg > "$output_file"
