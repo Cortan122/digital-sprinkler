@@ -5,7 +5,8 @@ posterwall.sh 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime l
 #latex.sh     	git@github.com:Cortan122/latex.git            	*.tex                               	latex_pdfs/*.pdf      	  1
 
 text2html.py  	git@github.com:Cortan122/memes.git            	фанфик про всё/soul cubes.txt       	notes/*.html
-text2html.py  	git@github.com:Cortan122/memes.git            	sounds.txt                          	notes/*.html
+text2html.py  	git@github.com:Cortan122/memes.git            	фанфик про меня/sounds.txt          	notes/*.html
+text2html.py  	git@github.com:Cortan122/memes.git            	dreams.txt                          	notes/*.html
 
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20211128_200113.jpg 	images/photo_1.jpg
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20220105_182804.jpg 	images/photo_2.jpg
