@@ -46,6 +46,7 @@ CSS = '''\
     padding: 0 25px 0 20px;
     text-align: right;
     vertical-align: top;
+    user-select: none;
   }
 
   .line {
