@@ -1,7 +1,7 @@
 filter        	repo                                          	path_in_repo                        	output                	all
 
 posterwall.sh 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	images/anime_wall.png
-#table.js     	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	anime.html
+animetable.py  	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	anime.html
 #latex.sh     	git@github.com:Cortan122/latex.git            	*.tex                               	latex_pdfs/*.pdf      	  1
 
 text2html.py  	git@github.com:Cortan122/memes.git            	фанфик про всё/soul cubes.txt       	notes/*.html

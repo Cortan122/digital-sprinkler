@@ -295,7 +295,9 @@ Command* createCommands(RepoList* arr, char* scripts_dir, char* output_dir){
 void runCommands(Command* commands){
   for(int i = 0; i < arrlen(commands); i++){
     Command* cmd = &commands[i];
-    if(!isOlderThen(cmd->output_path, cmd->input_path))continue;
+    bool input_changed = isOlderThen(cmd->output_path, cmd->input_path);
+    bool script_changed = cmd->script_path && isOlderThen(cmd->output_path, cmd->script_path);
+    if(!input_changed && !script_changed)continue;
 
     char* name = strrchr(cmd->output_path, '/')+1;
     fprintf(stderr, INFO"updating %s on %s\n", name, getTimeString());
