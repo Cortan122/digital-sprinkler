@@ -3,6 +3,7 @@
 import csv
 import re
 import sys
+from os.path import basename
 from typing import Collection, Literal
 from xml.dom.minidom import Document, Element
 
@@ -68,7 +69,7 @@ div.total {
 '''
 
 
-def create_html_doc(css: str = '') -> tuple[Document, Element]:
+def create_html_doc(css: str = '', title: str = '') -> tuple[Document, Element]:
     # Create a new XML document
     doc = Document()
 
@@ -84,6 +85,12 @@ def create_html_doc(css: str = '') -> tuple[Document, Element]:
     style = doc.createElement('style')
     head.appendChild(style)
     style.appendChild(doc.createTextNode(css))
+
+    # Create the `title` element
+    if title:
+        title_el = doc.createElement('title')
+        head.appendChild(title_el)
+        title_el.appendChild(doc.createTextNode(title))
 
     # Create the `meta` element
     meta = doc.createElement('meta')
@@ -282,7 +289,7 @@ def csv_to_html(csv_filename: str, html_filename: str) -> None:
     table = parse_csv(csv_filename)
 
     # Create a new HTML document
-    doc, body = create_html_doc(CSS)
+    doc, body = create_html_doc(CSS, f"table for {basename(csv_filename)}")
 
     # Format the table data and headers
     headers, formated = format_table(doc, table)
