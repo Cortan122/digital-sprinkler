@@ -8,7 +8,8 @@ mkdir -p posters
 cd posters
 rm -f *.jpg
 
-for i in `grep -Eo 'https://cdn.myanimelist.net/images/anime/[0-9]*/[0-9]*\.jpg' "$input_file"`; do
+# old regex: https://cdn.myanimelist.net/images/anime/[0-9]*/[0-9]*\.jpg
+for i in `grep -Po 'https?://[^\x00-\x1f"<>^`{|}]*\.jpg' "$input_file"`; do
   curl "$i" -sLO &
   echo "$i"
 done
