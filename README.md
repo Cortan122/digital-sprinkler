@@ -20,11 +20,11 @@ $ ./sprinkler --help
 
 ## Available filters
 
-1. `copy` -- Self explanatory. Just copies the file...
-2. `text2html.py` -- Converts txt files into fancy html, styled like the Mariana color scheme form [Sublime Text](https://www.sublimetext.com/).
-3. `animetable.py` -- Converts a csv table to html. Can theoretically be used on any table, but has some hardcoded variables for my anime list.
-4. `posterwall.sh` -- Finds image urls in a text file and arranges them into a giant png.
-5. `latex.sh` -- Compiles latex code into pdf. Untested...
+1. `copy` — Self explanatory. Just copies the file...
+2. `text2html.py` — Converts txt files into fancy html, styled like the Mariana color scheme form [Sublime Text](https://www.sublimetext.com/).
+3. `animetable.py` — Converts a csv table to html. Can theoretically be used on any table, but has some hardcoded variables for my anime list.
+4. `posterwall.sh` — Finds image urls in a text file and arranges them into a giant png.
+5. `latex.sh` — Compiles latex code into pdf. Untested...
 
 ## The name
 
