@@ -248,7 +248,7 @@ def format_cell(doc: Document, cell: str, cell_type: ColumnType) -> Element | st
 def format_table(doc: Document, table: CsvTable) -> tuple[list[str], list[list[Element | str]]]:
     headers, data, types = table
 
-    formated = [
+    formatted = [
         [format_cell(doc, cell, types[i]) for i, cell in enumerate(row)
          if headers[i] not in HIDDEN_COLUMNS]
         for row in data
@@ -258,12 +258,12 @@ def format_table(doc: Document, table: CsvTable) -> tuple[list[str], list[list[E
     # Move the index column to the front
     if INDEX_COLUMN in headers and headers.index(INDEX_COLUMN):
         index_pos = headers.index(INDEX_COLUMN)
-        for row in formated:
+        for row in formatted:
             row.insert(0, row.pop(index_pos))
         headers.pop(index_pos)
         headers.insert(0, INDEX_COLUMN + '\u00A0◣')
 
-    return headers, formated
+    return headers, formatted
 
 
 def total_duration(table: CsvTable) -> int | None:
@@ -292,10 +292,10 @@ def csv_to_html(csv_filename: str, html_filename: str) -> None:
     doc, body = create_html_doc(CSS, f"table for {basename(csv_filename)}")
 
     # Format the table data and headers
-    headers, formated = format_table(doc, table)
+    headers, formatted = format_table(doc, table)
 
     # Create the root element (an HTML table)
-    html_table = create_table(doc, formated, headers)
+    html_table = create_table(doc, formatted, headers)
     body.appendChild(html_table)
 
     # Calculate and add the total duration to the HTML document
