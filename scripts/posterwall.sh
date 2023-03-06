@@ -9,7 +9,7 @@ cd posters
 rm -f *.jpg
 
 # old regex: https://cdn.myanimelist.net/images/anime/[0-9]*/[0-9]*\.jpg
-for i in `grep -Po 'https?://[^\x00-\x1f"<>^`{|}]*\.jpg' "$input_file"`; do
+for i in `grep -Po 'https?://[^\x00-\x1f"<>^\x60{|}]*\.jpg' "$input_file"`; do
   curl "$i" -sLO &
   echo "$i"
 done

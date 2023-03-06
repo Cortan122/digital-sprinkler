@@ -33,8 +33,26 @@ The name "digital sprinkler" is a stupid pun, because some people call personal 
 I'm not that well versed in the terminology, but i don't like perfectly sterile looking wordpress websites.
 I'm more of a fan of the "neocities" or "js/css is for losers" aesthetics.
 
+## Custom Git Protocol
+
+This repo includes my custom implementation of the protocol that `git` uses internally to transfer files over `ssh`.
+It's all wirten in just under 800 lines of C.
+But there's only the bare minimum of error checks, so don't use it with untrusted servers...
+
+We have an optional **cursed** opaque interface!!
+```c
+bool pullObjectCollection(char* url, char** paths, size_t length, size_t stride);
+bool pullObjectCollection_cursed(char* url, void** opaque_stbarr, size_t elemsize, char** path_in, char** path_out);
+```
+But if you actually want to use it, it's probably a better idea to use the `*ObjectCollection()` functions directly.
+
 ## Todo list
 
 - [ ] Implement a new config format, instead of just using tsv
 - [ ] Pass custom css to filters
-- [ ] Use a custom implementation of the "git over ssh" (or whatever it's called) algorithm
+- [x] Use a custom implementation of the "git pack" [protocol](https://git-scm.com/docs/gitprotocol-pack)
+- [ ] Some sort of `c2wasm` filter
+- [ ] Avoid storing there copies of the same large file when using the `copy` filter
+- [ ] Fuzz `git.c`, because it is not secure against maliciously constructed data
+- [ ] Fix the deprecated SHA1 crypto
+- [ ] Use arena allocator in `git.c`

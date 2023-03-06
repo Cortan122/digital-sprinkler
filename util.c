@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
 
 #include <unistd.h>
 #include <sys/wait.h>
@@ -15,6 +16,7 @@
 #pragma comment(lib, "m")
 #include <math.h>
 
+#pragma comment(option, "-Wno-deprecated-declarations")
 #pragma comment(lib, "crypto")
 #include <openssl/sha.h>
 #include <openssl/evp.h>
@@ -133,8 +135,66 @@ char* base64sha1file(char* path){
   return sha1base64(hash);
 }
 
+char* sha1tohex(uint8_t* hash){
+  static char hex[SHA_DIGEST_LENGTH*2+1];
+  for(int i = 0; i < SHA_DIGEST_LENGTH; i++){
+    sprintf(hex + i*2, "%02x", hash[i]);
+  }
+  hex[SHA_DIGEST_LENGTH*2] = '\0';
+  return hex;
+}
+
+char* hexsha1git(const char* prefix, uint8_t* data, size_t len){
+  uint8_t hash[SHA_DIGEST_LENGTH];
+  SHA_CTX sha1context = {0};
+  char buff[22] = {0};
+  snprintf(buff, sizeof(buff), " %lu", len);
+
+  SHA1_Init(&sha1context);
+  SHA1_Update(&sha1context, prefix, strlen(prefix));
+  SHA1_Update(&sha1context, buff, strlen(buff)+1);
+  SHA1_Update(&sha1context, data, len);
+  SHA1_Final(hash, &sha1context);
+
+  return sha1tohex(hash);
+}
+
 bool isOlderThen(const char* file1, const char* file2){
   struct stat b1, b2;
   if(stat(file1, &b1) || stat(file2, &b2))return true; // true, since at least one stat failed
   return b1.st_mtime < b2.st_mtime;
+}
+
+char* concatStrings(char* const* arr){
+  size_t total_len = 0;
+  for(int i = 0; arr[i]; i++){
+    total_len += strlen(arr[i]);
+  }
+
+  char* res = malloc(total_len+1);
+  res[0] = '\0';
+  for(int i = 0; arr[i]; i++){
+    strcat(res, arr[i]);
+  }
+  return res;
+}
+
+void mkdir_safe(const char* dir){
+  if(mkdir(dir, 0755)){
+    if(errno != EEXIST){
+      perror(dir);
+      exit(1);
+    }
+  }
+}
+
+void mkdir_parents(char* file_path){
+  // todo: check existence only once
+  for(int i = 1; file_path[i]; i++){
+    if(file_path[i] == '/'){
+      file_path[i] = '\0';
+      mkdir_safe(file_path);
+      file_path[i] = '/';
+    }
+  }
 }

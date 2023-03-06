@@ -8,16 +8,13 @@
 #include <getopt.h>
 
 #include "util.h"
+#include "git.h"
 
 #pragma comment(option, "-Wno-unused-function")
 #pragma comment(option, "-Wno-sign-compare")
 #pragma comment(dir, "https://github.com/nothings/stb")
 #define STB_DS_IMPLEMENTATION
 #include <stb_ds.h>
-
-#define ERROR "\x1b[31mERROR\x1b[0m: \x1b[93msprinkler\x1b[0m: "
-#define WARNING "\x1b[95mWARNING\x1b[0m: \x1b[93msprinkler\x1b[0m: "
-#define INFO "\x1b[36mINFO\x1b[0m: \x1b[93msprinkler\x1b[0m: "
 
 #ifndef __DIR__
   #define __DIR__ "."
@@ -28,6 +25,7 @@ struct option longOptionRom[] = {
   {"scripts", required_argument, 0, 's'},
   {"output", required_argument, 0, 'o'},
   {"help", no_argument, 0, 'h'},
+  {"custom-git", no_argument, 0, 'G'},
   {0, 0, 0, 0}
 };
 
@@ -52,6 +50,8 @@ typedef struct RepoList {
   char* tree_path;
   bool do_full_clone;
 } RepoList;
+
+bool use_custom_git = false;
 
 char* nextField(char** datap, const char* substr){
   if(*datap == NULL)return NULL;
@@ -136,39 +136,6 @@ void freeCommands(Command* commands){
     free(commands[i].output_path);
   }
   arrfree(commands);
-}
-
-char* concatStrings(char* const* arr){
-  size_t total_len = 0;
-  for(int i = 0; arr[i]; i++){
-    total_len += strlen(arr[i]);
-  }
-
-  char* res = malloc(total_len+1);
-  res[0] = '\0';
-  for(int i = 0; arr[i]; i++){
-    strcat(res, arr[i]);
-  }
-  return res;
-}
-
-void mkdir_safe(const char* dir){
-  if(mkdir(dir, 0755)){
-    if(errno != EEXIST){
-      perror(dir);
-      exit(1);
-    }
-  }
-}
-
-void mkdir_parents(char* file_path){
-  for(int i = 1; file_path[i]; i++){
-    if(file_path[i] == '/'){
-      file_path[i] = '\0';
-      mkdir_safe(file_path);
-      file_path[i] = '/';
-    }
-  }
 }
 
 void partialCheckout(RepoList* repo){
@@ -310,7 +277,20 @@ void runCommands(Command* commands){
 void sprinkle(char* config_path, char* script_path, char* output_path){
   MmapedFile file = readFile(config_path, false);
   RepoList* arr = parseConfig(file.data);
-  ensureRepos(arr);
+
+  if(use_custom_git){
+    for(int i = 0; i < shlen(arr); i++){
+      if(arr[i].do_full_clone){
+        fprintf(stderr, WARNING"full clones don't work yet with custom git\n");
+        continue;
+      }
+      ConfigLine* files = arr[i].value;
+      pullObjectCollection_cursed(arr[i].key, (void**)&arr[i].value, sizeof(*files), &files->path_in_repo, &files->src_path);
+    }
+  }else{
+    ensureRepos(arr);
+  }
+
   Command* commands = createCommands(arr, script_path, output_path);
   runCommands(commands);
 
@@ -326,7 +306,7 @@ int main(int argc, char** argv){
 
   while(1){
     int optionIndex = 0;
-    int c = getopt_long(argc, argv, "hi:s:o:", longOptionRom, &optionIndex);
+    int c = getopt_long(argc, argv, "Ghi:s:o:", longOptionRom, &optionIndex);
     if(c == -1)break;
     switch(c){
       case 0:
@@ -343,6 +323,9 @@ int main(int argc, char** argv){
       case 'o':
         output_path = optarg;
         break;
+      case 'G':
+        use_custom_git = true;
+        break;
 
       case 'h':
         printf(
@@ -352,6 +335,7 @@ int main(int argc, char** argv){
           "  -i, --config <path>   Path to config file tsv\n"
           "  -s, --scripts <path>  Path to scripts directory\n"
           "  -o, --output <path>   Path to output www directory\n"
+          "  -G, --custom-git      Use my custom implementation of the git protocol\n"
           "  -h, --help            Output usage information\n"
           // "  -V, --version       output the version number\n"
         );

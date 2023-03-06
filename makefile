@@ -1,11 +1,12 @@
-LDLIBS=-lm -lcrypto
-WARNINGS=-Wall -Wextra -Wno-parentheses -Wno-unknown-pragmas -Wno-sign-compare -Werror=vla
-CFLAGS=-fdollars-in-identifiers -funsigned-char $(WARNINGS) -I. '-D__DIR__="$(shell realpath .)"'
+LDLIBS=-lm -lcrypto -lz
+WARNINGS=-Wall -Wextra -Wno-parentheses -Wno-unknown-pragmas -Wno-sign-compare -Wno-deprecated-declarations -Werror=vla
+CFLAGS=-fdollars-in-identifiers -funsigned-char -O2 $(WARNINGS) -I. '-D__DIR__="$(shell realpath .)"'
 
 all: sprinkler
-sprinkler: sprinkler.o util.o
+sprinkler: sprinkler.o util.o git.o
 sprinkler.o: stb_ds.h
 util.o: util.h
+git.o: git.h
 
 clean:
 	rm -f *.o sprinkler stb_ds.h
