@@ -4,3 +4,4 @@ sprinkler
 *.o
 stb_ds.h
 __pycache__
+.vscode/
