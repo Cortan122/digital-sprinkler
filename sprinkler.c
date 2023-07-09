@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <glob.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 #include "util.h"
 #include "git.h"
@@ -271,6 +272,16 @@ void runCommands(Command* commands){
 
     char* exe = cmd->script_path ?: "cp";
     execFileSync(exe, (char*[]){exe, cmd->input_path, cmd->output_path, NULL});
+
+    // TODO: this is a bodge!
+    char* neocities = strstr(cmd->output_path, "/neocities/");
+    if(neocities){
+      neocities = strchr(neocities+1, '/')+1;
+      // TODO: escape the names!!
+      setenv("NEOCITIES_FILENAME", neocities, 1);
+      setenv("NEOCITIES_FILEPATH", cmd->output_path, 1);
+      system("curl -F \"$NEOCITIES_FILENAME=@$NEOCITIES_FILEPATH\" -H \"Authorization: Bearer $NEOCITIES_KEY\" https://neocities.org/api/upload");
+    }
   }
 }
 

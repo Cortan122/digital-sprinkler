@@ -13,3 +13,5 @@ copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20220206_154029.jpg 	images/photo_3.jpg
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20220707_145446.jpg 	images/photo_4.jpg
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20210729_190012.jpg 	images/photo_5.jpg
+
+animetable.py  	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	neocities/anime.html
