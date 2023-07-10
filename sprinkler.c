@@ -6,10 +6,10 @@
 #include <unistd.h>
 #include <glob.h>
 #include <getopt.h>
-#include <stdlib.h>
 
 #include "util.h"
 #include "git.h"
+#include "neocities.h"
 
 #pragma comment(option, "-Wno-unused-function")
 #pragma comment(option, "-Wno-sign-compare")
@@ -261,6 +261,7 @@ Command* createCommands(RepoList* arr, char* scripts_dir, char* output_dir){
 }
 
 void runCommands(Command* commands){
+  NeocitiesClient neo = neocities_init();
   for(int i = 0; i < arrlen(commands); i++){
     Command* cmd = &commands[i];
     bool input_changed = isOlderThen(cmd->output_path, cmd->input_path);
@@ -273,16 +274,15 @@ void runCommands(Command* commands){
     char* exe = cmd->script_path ?: "cp";
     execFileSync(exe, (char*[]){exe, cmd->input_path, cmd->output_path, NULL});
 
-    // TODO: this is a bodge!
+    // TODO: make up a better way to mark files
     char* neocities = strstr(cmd->output_path, "/neocities/");
     if(neocities){
       neocities = strchr(neocities+1, '/')+1;
-      // TODO: escape the names!!
-      setenv("NEOCITIES_FILENAME", neocities, 1);
-      setenv("NEOCITIES_FILEPATH", cmd->output_path, 1);
-      system("curl -F \"$NEOCITIES_FILENAME=@$NEOCITIES_FILEPATH\" -H \"Authorization: Bearer $NEOCITIES_KEY\" https://neocities.org/api/upload");
+      neocities_addfile(&neo, neocities, cmd->output_path);
     }
   }
+  neocities_perform(&neo);
+  neocities_free(&neo);
 }
 
 void sprinkle(char* config_path, char* script_path, char* output_path){
