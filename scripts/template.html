@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="favicon.ico">
+  <link rel="stylesheet" href="style.css">
+
+  <title data-slot="title">Some title</title>
+</head>
+<body class="about-bg">
+  <div class="about-bg-left about-vine"></div>
+  <div class="about-bg-right about-vine"></div>
+<div class="about-body">
+  <h1 data-slot="title">Some title</h1>
+  <div data-slot="subtitle" class="subtitle">A collection from tumblr</div>
+  <hr/>
+
+  <p data-slot="intro">
+    This page was made automatically with my tumblr web scraping script.
+    It doesn't support reblog trails, CSS lightboxes and text formatting yet.
+    Also, be careful scrolling this page too fast, especially of you're on a limited data plan!
+    All the images are included in full resolution, and in total might add up to about 100MB of traffic.
+  </p>
+
+  <div data-slot="post-list" class="gf-chainable">
+    <div class="gf-chain"></div>
+    <div class="gf-chain"></div>
+    <div class="gf-border"></div>
+    <div class="tumblr-post" data-slot="post"></div>
+  </div>
+</div>
+</body>
+</html>
