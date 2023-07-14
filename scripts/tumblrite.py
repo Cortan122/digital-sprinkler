@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup, Tag
 
 MAX_PAGES = 10
 TEMPLATE_HTML = open("template.html").read()
+USE_FORMATTING = True
 
 
 def print_info(severity: str, info: str):
@@ -65,16 +66,75 @@ def fetch_post(post_url: str) -> dict:
   return json.loads(code_tag.text)
 
 
+def append_formatted_text(soup: BeautifulSoup, parent: Tag, text: str, formatting: list[dict]):
+  prev = 0
+  stack = [parent]
+  end_stack = [100_000_000]
+
+  def pop_tag():
+    nonlocal prev
+
+    next_end = end_stack[-1]
+    stack[-1].append(text[prev:next_end])
+    stack[-2].append(stack[-1])
+    stack.pop()
+    end_stack.pop()
+    prev = next_end
+
+  def push_tag(tag: Tag, start: int, end: int):
+    nonlocal prev
+
+    while end_stack[-1] <= start:
+      pop_tag()
+    stack[-1].append(text[prev:start])
+
+    assert end <= end_stack[-1], "Improperly nested styles"
+    tag.attrs["class"] = "tumblr-formatting"
+    stack.append(tag)
+    end_stack.append(end)
+    prev = start
+
+  for span in formatting:
+    match span:
+      case {"start": start, "end": end, "type": "bold"}:
+        push_tag(soup.new_tag('b'), start, end)
+      case {"start": start, "end": end, "type": "small"}:
+        push_tag(soup.new_tag('small'), start, end)
+      case {"start": start, "end": end, "type": "italic"}:
+        push_tag(soup.new_tag('i'), start, end)
+      case {"start": start, "end": end, "type": "strikethrough"}:
+        push_tag(soup.new_tag('s'), start, end)
+
+      case {"start": start, "end": end, "type": "mention", "blog": blog}:
+        push_tag(soup.new_tag('a', href=f'https://www.tumblr.com/{blog["name"]}'), start, end)
+      case {"start": start, "end": end, "type": "link", "url": url}:
+        push_tag(soup.new_tag('a', href=url), start, end)
+      case {"start": start, "end": end, "type": "color", "hex": hex}:
+        push_tag(soup.new_tag('span', style=f'color: {hex};'), start, end)
+
+      case {"start": start, "end": end, "type": type}:
+        print_info("WARNING", f"Unknown formatting type '{type}'")
+
+  while len(stack) > 1:
+    pop_tag()
+  stack[-1].append(text[prev:])
+
+
 def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Tag):
   current_list_type: str = "p"
   current_list: Tag = parent
 
-  def append_tag(name: str, string: str = "", **kwargs):
+  def append_tag(name: str, string: str = "", formatting: list[dict] | None = None, **kwargs):
     nonlocal current_list, current_list_type
 
     tag = soup.new_tag(name, **kwargs)
-    if string:
+    if formatting and string:
+      append_formatted_text(soup, tag, string, formatting)
+    elif string:
       tag.string = string
+
+    if name not in {"li", "img"}:
+      name = "p"
 
     if current_list_type == name:
       current_list.append(tag)
@@ -96,24 +156,30 @@ def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Ta
       case "img":
         current_list = soup.new_tag("div")
         current_list.attrs["class"] = "tumblr-img-list"
+      case _:
+        assert False, "Should be unreachable"
 
     current_list.append(tag)
     current_list_type = name
 
   for paragraph in npf_content:
-    if "formatting" in paragraph:
-      print_info("WARNING", "Can't parse formatting yet...")
+    formatting = paragraph.get("formatting") if USE_FORMATTING else None
 
     match paragraph:
       case {"type": "text", "text": text, "subtype": "ordered-list-item"}:
-        append_tag("li", text)
+        append_tag("li", text, formatting)
+
+      case {"type": "text", "text": text, "subtype": "heading1"}:
+        append_tag("h2", text, formatting)
+      case {"type": "text", "text": text, "subtype": "heading2"}:
+        append_tag("h3", text, formatting)
 
       case {"type": "text", "text": text, "subtype": subtype}:
         print_info("ERROR", f"Unknown subtype '{subtype}'")
         print(json.dumps(paragraph, indent=2), file=sys.stderr)
 
       case {"type": "text", "text": text}:
-        append_tag("p", text)
+        append_tag("p", text, formatting)
 
       case {"type": "image", "media": media}:
         url = [size["url"] for size in media if size.get("has_original_dimensions")]
@@ -130,7 +196,7 @@ def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Ta
     parent.append(current_list)
 
 
-def main(search_url: str):
+def init_template_soup(search_url: str) -> tuple[BeautifulSoup, Tag]:
   match = re.match(r'^https://.*?\.tumblr\.com/tagged/(.*)$', search_url)
   assert match
   tag_name = match.group(1).replace('+', ' ').title()
@@ -143,6 +209,13 @@ def main(search_url: str):
   for slot in title_slots:
     slot.string = tag_name
 
+  return soup, post_list
+
+
+def main(search_url: str):
+  soup, post_list = init_template_soup(search_url)
+  assert post_list.parent
+
   post_urls = search_pages(search_url)
   for post_url in post_urls:
     post = fetch_post(post_url)
@@ -154,7 +227,7 @@ def main(search_url: str):
     post_list.parent.append(template)
 
   post_list.decompose()
-  print(soup.prettify())
+  print(soup)
 
 
 if __name__ == '__main__':
