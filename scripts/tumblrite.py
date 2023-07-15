@@ -4,6 +4,10 @@ import copy
 import json
 import re
 import sys
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from email.utils import parsedate_to_datetime
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -11,6 +15,18 @@ from bs4 import BeautifulSoup, Tag
 MAX_PAGES = 10
 TEMPLATE_HTML = open("template.html").read()
 USE_FORMATTING = True
+USE_RSS_FOR_SEARCHING = True
+# USE_RSS_FOR_POSTS = False
+ADD_REBLOG_TRAILS = True
+
+@dataclass
+class RssPost:
+  url: str
+  tags: list[str]
+  html: str
+  date: datetime
+
+rss_posts_cache: dict[str, RssPost] = {}
 
 
 def print_info(severity: str, info: str):
@@ -24,9 +40,27 @@ def print_info(severity: str, info: str):
       print(f"\x1b[95mWARNING\x1b[0m: {postfix}", file=sys.stderr)
     case "INFO":
       print(f"\x1b[36mINFO\x1b[0m: {postfix}", file=sys.stderr)
+    case _:
+      print(f"\x1b[36m{severity}\x1b[0m: {postfix}", file=sys.stderr)
 
 
 def search_page(search_url: str) -> list[str]:
+  if USE_RSS_FOR_SEARCHING:
+    search_url += '/rss'
+    xml = requests.get(search_url).text
+    soup = BeautifulSoup(xml, features="lxml-xml")
+    urls = []
+    for item in soup.find_all("item"):
+      post = RssPost(
+        url=item.find("link").string,
+        html=item.find("description").string,
+        date=parsedate_to_datetime(item.find("pubDate").string),
+        tags=[tag.string for tag in item.find_all("category")],
+      )
+      rss_posts_cache[post.url] = post
+      urls.append(post.url)
+    return urls
+
   html = requests.get(search_url).text
   soup = BeautifulSoup(html, features="lxml")
 
@@ -37,6 +71,9 @@ def search_page(search_url: str) -> list[str]:
 
 
 def search_pages(search_url: str, *, max_pages=MAX_PAGES) -> list[str]:
+  if re.match(r'^https://.*?\.tumblr\.com/post/', search_url):
+    return [search_url]
+
   fancy_name = search_url[search_url.rindex('/')+1:]
   total_post_urls = []
 
@@ -47,7 +84,7 @@ def search_pages(search_url: str, *, max_pages=MAX_PAGES) -> list[str]:
     page_posts = search_page(page_url)
 
     total_post_urls += page_posts
-    if len(page_posts) < 10:
+    if len(page_posts) < 15:
       break
 
   return total_post_urls
@@ -197,9 +234,9 @@ def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Ta
 
 
 def init_template_soup(search_url: str) -> tuple[BeautifulSoup, Tag]:
-  match = re.match(r'^https://.*?\.tumblr\.com/tagged/(.*)$', search_url)
+  match = re.match(r'^https://.*?\.tumblr\.com/(?:tagged|post/[0-9]+)/(.*)$', search_url)
   assert match
-  tag_name = match.group(1).replace('+', ' ').title()
+  tag_name = match.group(1).replace('+', ' ').replace('-', ' ').title()
 
   soup = BeautifulSoup(TEMPLATE_HTML, features="lxml")
   post_list = soup.select_one('*[data-slot="post-list"]')
@@ -212,19 +249,65 @@ def init_template_soup(search_url: str) -> tuple[BeautifulSoup, Tag]:
   return soup, post_list
 
 
-def main(search_url: str):
-  soup, post_list = init_template_soup(search_url)
+def format_reblog_header(soup: BeautifulSoup, parent: Tag, blog: dict, post_id: str):
+  div = soup.new_tag("div", **{"class": "tumblr-blog"})
+  ava_url = blog["avatar"][0]["url"]
+  ava = soup.new_tag("img", src=ava_url, **{"class": "tumblr-ava"})
+  div.append(ava)
+
+  name = soup.new_tag("a", href=blog["url"], **{"class": "tumblr-blogname"})
+  name.string = blog["name"]
+  div.append(name)
+
+  post_url = f'https://www.tumblr.com/{blog["name"]}/{post_id}/'
+  postlink = soup.new_tag("a", href=post_url, **{"class": "tumblr-postlink"})
+  div.append(postlink)
+
+  parent.append(div)
+
+
+def format_post(soup: BeautifulSoup, parent: Tag, post: dict):
+  for reblog in post.get("trail", []):
+    format_post(soup, parent, reblog)
+    divider = soup.new_tag("hr", **{"class": "tumblr-divider"})
+    parent.append(divider)
+
+  if post.get("blog") and ADD_REBLOG_TRAILS:
+    format_reblog_header(soup, parent, post["blog"], post["post"]["id"])
+
+  format_post_content(post["content"], soup, parent)
+
+
+def fetch_posts(soup: BeautifulSoup, post_list: Tag, post_urls: list[str]):
   assert post_list.parent
 
-  post_urls = search_pages(search_url)
   for post_url in post_urls:
-    post = fetch_post(post_url)
     template = copy.copy(post_list)
     post_slot = template.select_one('*[data-slot="post"]')
     assert post_slot
 
-    format_post_content(post["content"], soup, post_slot)
+    match = re.match(r'^https://.*?\.tumblr\.com/post/([0-9]+)', post_url)
+    if match:
+      post_slot.attrs["id"] = f'post-{int(match.group(1))}'
+    else:
+      print_info("ERROR", f"can't find post id in url '{post_url}'")
+
+    post = fetch_post(post_url)
+    format_post(soup, post_slot, post)
     post_list.parent.append(template)
+
+
+def main(search_url: str):
+  soup, post_list = init_template_soup(search_url)
+
+  start = time.time()
+  post_urls = search_pages(search_url)
+  end = time.time()
+  print_info("INFO", f"search_pages took {end - start:.4f} seconds")
+
+  fetch_posts(soup, post_list, post_urls)
+  end2 = time.time()
+  print_info("INFO", f"fetch_posts took {end2 - end:.4f} seconds")
 
   post_list.decompose()
   print(soup)
