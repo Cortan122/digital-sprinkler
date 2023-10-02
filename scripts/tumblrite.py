@@ -108,6 +108,8 @@ def append_formatted_text(soup: BeautifulSoup, parent: Tag, text: str, formattin
   stack = [parent]
   end_stack = [100_000_000]
 
+  formatting.sort(key=lambda x: x["start"])
+
   def pop_tag():
     nonlocal prev
 
@@ -205,6 +207,9 @@ def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Ta
     match paragraph:
       case {"type": "text", "text": text, "subtype": "ordered-list-item"}:
         append_tag("li", text, formatting)
+      case {"type": "text", "text": text, "subtype": "unordered-list-item"}:
+        append_tag("li", text, formatting)
+        # todo: actually make them different
 
       case {"type": "text", "text": text, "subtype": "heading1"}:
         append_tag("h2", text, formatting)
@@ -234,9 +239,13 @@ def format_post_content(npf_content: list[dict], soup: BeautifulSoup, parent: Ta
 
 
 def init_template_soup(search_url: str) -> tuple[BeautifulSoup, Tag]:
-  match = re.match(r'^https://.*?\.tumblr\.com/(?:tagged|post/[0-9]+)/(.*)$', search_url)
-  assert match
-  tag_name = match.group(1).replace('+', ' ').replace('-', ' ').title()
+  match = re.match(r'^https://.*?\.tumblr\.com/post/([0-9]+)$', search_url)
+  if match:
+    tag_name = f'Tumblr Post №{match.group(1)}'
+  else:
+    match = re.match(r'^https://.*?\.tumblr\.com/(?:tagged|post/[0-9]+)/(.*)$', search_url)
+    assert match
+    tag_name = match.group(1).replace('+', ' ').replace('-', ' ').title()
 
   soup = BeautifulSoup(TEMPLATE_HTML, features="lxml")
   post_list = soup.select_one('*[data-slot="post-list"]')
@@ -246,13 +255,15 @@ def init_template_soup(search_url: str) -> tuple[BeautifulSoup, Tag]:
   for slot in title_slots:
     slot.string = tag_name
 
+  soup.builder.preserve_whitespace_tags.update(['b', 'span', 'i', 'li', 'h2', 'h3', 'small', 'a', 's', 'p'])
+
   return soup, post_list
 
 
 def format_reblog_header(soup: BeautifulSoup, parent: Tag, blog: dict, post_id: str):
   div = soup.new_tag("div", **{"class": "tumblr-blog"})
   ava_url = blog["avatar"][0]["url"]
-  ava = soup.new_tag("img", src=ava_url, **{"class": "tumblr-ava"})
+  ava = soup.new_tag("img", src=ava_url, width=48, height=48, **{"class": "tumblr-ava"})
   div.append(ava)
 
   name = soup.new_tag("a", href=blog["url"], **{"class": "tumblr-blogname"})
@@ -276,6 +287,8 @@ def format_post(soup: BeautifulSoup, parent: Tag, post: dict):
     format_reblog_header(soup, parent, post["blog"], post["post"]["id"])
 
   format_post_content(post["content"], soup, parent)
+  if not post["content"]:
+    parent.contents[-1].decompose()  # type: ignore
 
 
 def fetch_posts(soup: BeautifulSoup, post_list: Tag, post_urls: list[str]):
@@ -310,7 +323,7 @@ def main(search_url: str):
   print_info("INFO", f"fetch_posts took {end2 - end:.4f} seconds")
 
   post_list.decompose()
-  print(soup)
+  print(soup.prettify(), end='')
 
 
 if __name__ == '__main__':
