@@ -3,14 +3,15 @@
 import csv
 import re
 import sys
+from datetime import datetime
 from os.path import basename
 from typing import Collection, Literal
 from xml.dom.minidom import Document, Element
 
-ColumnType = Literal['image', 'url', 'bool', 'int', 'float', 'text', 'duration']
+ColumnType = Literal['image', 'url', 'bool', 'int', 'float', 'text', 'duration', 'youtube', 'date']
 CsvTable = tuple[list[str], list[list[str]], list[ColumnType]]
 LINK_TEXT = 'mal'
-HIDDEN_COLUMNS = ['id', 'title']
+HIDDEN_COLUMNS = ['id', 'title', 'track']
 DOUBLE_COUNT_COLUMNS = ['dub', 'sub']
 INDEX_COLUMN = 'index'
 
@@ -66,6 +67,10 @@ div.total {
   font-weight: bold;
   margin-top: 2rem;
 }
+
+a.youtube {
+  font-family: monospace;
+}
 '''
 
 
@@ -119,6 +124,13 @@ def guess_type(column: Collection[str], header: str) -> ColumnType:
             return "int"
     elif all(re.match(r'^-?[0-9]+\.[0-9]+$', cell) for cell in column):
         return "float"
+    elif all(re.match(r'^[0-9A-Za-z_\-]{11}$', cell) for cell in column):
+        if "youtube" in header.lower() or "yt" in header.lower():
+            return "youtube"
+        else:
+            return "text"
+    elif all(re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$', cell) for cell in column):
+        return "date"
     else:
         return "text"
 
@@ -240,6 +252,16 @@ def format_cell(doc: Document, cell: str, cell_type: ColumnType) -> Element | st
     elif cell_type == 'float':
         # If the cell is a float, format it to only have 3 digits of precision
         return f'{float(cell):.3f}'
+    elif cell_type == 'youtube':
+        # If the cell is a youtube id, format it as a URL
+        a = doc.createElement('a')
+        a.setAttribute('class', 'youtube')
+        a.setAttribute('href', f'https://www.youtube.com/watch?v={cell}')
+        a.appendChild(doc.createTextNode(cell))
+        return a
+    elif cell_type == 'date':
+        # If the cell is a date, format the date as an iso type sting
+        return datetime.fromisoformat(cell).strftime("%Y-%m-%d")
     else:
         # For all other cell types, treat the cell value as a text node
         return cell

@@ -1,7 +1,7 @@
 filter        	repo                                          	path_in_repo                        	output                	all
 
 posterwall.sh 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	images/anime_wall.png
-animetable.py  	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	anime.html
+animetable.py 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	anime.html
 #latex.sh     	git@github.com:Cortan122/latex.git            	*.tex                               	latex_pdfs/*.pdf      	  1
 
 text2html.py  	git@github.com:Cortan122/memes.git            	фанфик про всё/soul cubes.txt       	notes/*.html
@@ -14,4 +14,5 @@ copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20220707_145446.jpg 	images/photo_4.jpg
 copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20210729_190012.jpg 	images/photo_5.jpg
 
-animetable.py  	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	neocities/anime.html
+animetable.py 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	neocities/anime.html
+animetable.py 	git@github.com:Cortan122/dz2023.git           	music_details.csv                   	neocities/music.html
