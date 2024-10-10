@@ -16,3 +16,5 @@ copy          	git@github.com:Cortan122/memes.git            	cute photos/IMG_20
 
 animetable.py 	git@github.com:Cortan122/OrphanedProjects.git 	anime/list/anime list.csv           	neocities/anime.html
 animetable.py 	git@github.com:Cortan122/dz2023.git           	music_details.csv                   	neocities/music.html
+
+text2html.py  	git@github.com:Cortan122/dz2024.git           	Computational Geometry/lecture notes.txt 	emilia/geometry_notes.txt
